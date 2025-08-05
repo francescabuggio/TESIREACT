@@ -91,18 +91,23 @@ const SurveyLikert = ({ updateSurveyData, surveyData }: SurveyLikertProps) => {
           fontSize: '0.85rem' 
         }}>
           <strong>Legenda:</strong><br />
-          1 = Totalmente in disaccordo | 2 = Molto in disaccordo | 3 = Abbastanza in disaccordo | 
-          4 = Né d'accordo né in disaccordo | 5 = Abbastanza d'accordo | 6 = Molto d'accordo | 7 = Totalmente d'accordo
+          <span className="likert-legend-desktop">
+            1 = Totalmente in disaccordo | 2 = Molto in disaccordo | 3 = Abbastanza in disaccordo | 
+            4 = Né d'accordo né in disaccordo | 5 = Abbastanza d'accordo | 6 = Molto d'accordo | 7 = Totalmente d'accordo
+          </span>
+          <span className="likert-legend-mobile">
+            1=Tot.disaccordo | 2=Molto disaccordo | 3=Abb.disaccordo | 4=Neutro | 5=Abb.accordo | 6=Molto accordo | 7=Tot.accordo
+          </span>
         </div>
         
         <table className="likert-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={{ width: '60%', textAlign: 'left', padding: '0.8rem', background: '#f8f9fa' }}>
+              <th className="likert-question-header" style={{ width: '60%', textAlign: 'left', padding: '0.8rem', background: '#f8f9fa' }}>
                 Affermazione
               </th>
               {[1,2,3,4,5,6,7].map(value => (
-                <th key={value} style={{ width: '5.7%', textAlign: 'center', padding: '0.8rem', background: '#f8f9fa' }}>
+                <th key={value} className="likert-scale-header" style={{ width: '5.7%', textAlign: 'center', padding: '0.8rem', background: '#f8f9fa' }}>
                   {value}
                 </th>
               ))}
@@ -111,17 +116,18 @@ const SurveyLikert = ({ updateSurveyData, surveyData }: SurveyLikertProps) => {
           <tbody>
             {currentQuestions.map(q => (
               <tr key={q.id}>
-                <td style={{ padding: '0.8rem', borderBottom: '1px solid #eee', fontSize: '0.9rem' }}>
+                <td className="likert-question-cell" style={{ padding: '0.8rem', borderBottom: '1px solid #eee', fontSize: '0.9rem' }}>
                   {q.text}
                 </td>
                 {[1,2,3,4,5,6,7].map(value => (
-                  <td key={value} style={{ padding: '0.8rem', textAlign: 'center', borderBottom: '1px solid #eee' }}>
+                  <td key={value} className="likert-scale-cell" style={{ padding: '0.8rem', textAlign: 'center', borderBottom: '1px solid #eee' }}>
                     <input 
                       type="radio" 
                       name={q.id} 
                       value={value} 
                       onChange={() => handleAnswer(q.id, value)}
                       checked={answers[q.id] === value}
+                      className="likert-radio"
                       style={{ transform: 'scale(1.2)' }}
                     />
                   </td>
