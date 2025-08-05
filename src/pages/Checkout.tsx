@@ -18,8 +18,6 @@ const Checkout = ({ updateSurveyData, surveyData }: CheckoutProps) => {
   const [isPreSelectedCC] = useState(variantNumber > 4);
   const [selectedDelivery, setSelectedDelivery] = useState(isPreSelectedCC ? 'cc' : 'home');
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
     address: ''
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -80,12 +78,6 @@ const Checkout = ({ updateSurveyData, surveyData }: CheckoutProps) => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'Il nome è obbligatorio';
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Il cognome è obbligatorio';
-    }
     // Only validate address if home delivery is selected
     if (selectedDelivery === 'home' && !formData.address.trim()) {
       newErrors.address = 'L\'indirizzo è obbligatorio per la consegna a domicilio';
@@ -102,8 +94,8 @@ const Checkout = ({ updateSurveyData, surveyData }: CheckoutProps) => {
     const deliveryMethod = selectedDelivery === 'home' ? 'Consegna a domicilio' : 'Click & Collect';
 
     const orderData: OrderData = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
+      firstName: 'Anonimo',
+      lastName: 'Partecipante',
       shippingAddress: selectedDelivery === 'home' ? formData.address : 'Click & Collect - Punto di raccolta',
       productTitle: product.title,
       productPrice: product.price,
@@ -191,36 +183,10 @@ const Checkout = ({ updateSurveyData, surveyData }: CheckoutProps) => {
           
           <div className="shipping-form">
             <h4>Dati di spedizione</h4>
-            <div className="form-group">
-              <label htmlFor="firstName">Nome *</label>
-              <input 
-                type="text" 
-                id="firstName" 
-                value={formData.firstName}
-                onChange={(e) => handleInputChange('firstName', e.target.value)}
-                className={errors.firstName ? 'error' : ''}
-                placeholder="Inserisci il tuo nome"
-                style={{ color: '#333' }}
-              />
-              {errors.firstName && <div className="error-message">{errors.firstName}</div>}
-            </div>
-            <div className="form-group">
-              <label htmlFor="lastName">Cognome *</label>
-              <input 
-                type="text" 
-                id="lastName" 
-                value={formData.lastName}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
-                className={errors.lastName ? 'error' : ''}
-                placeholder="Inserisci il tuo cognome"
-                style={{ color: '#333' }}
-              />
-              {errors.lastName && <div className="error-message">{errors.lastName}</div>}
-            </div>
             
             {selectedDelivery === 'home' ? (
               <div className="form-group">
-                <label htmlFor="address">Indirizzo di spedizione *</label>
+                <label htmlFor="address">Indirizzo di spedizione * (per mantenere l'anonimato puoi inserire un indirizzo inventato)</label>
                 <input 
                   type="text" 
                   id="address" 

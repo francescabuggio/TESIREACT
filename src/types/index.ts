@@ -78,6 +78,8 @@ export interface SurveyData {
   timestamp: string;
   sessionId: string;
   surveyStartTime?: number;
+  consentGiven?: boolean;
+  consentTimestamp?: string;
   initialSurvey?: InitialSurvey;
   checkoutData?: CheckoutData;
   orderData?: OrderData;
@@ -106,4 +108,4 @@ export interface LikertQuestion {
   text: string;
 }
 
-export type SurveyStep = 'intro' | 'initial' | 'likert' | 'scenario' | 'ecommerce' | 'checkout' | 'success' | 'final' | 'complete'; 
+export type SurveyStep = 'consent' | 'intro' | 'initial' | 'likert' | 'scenario' | 'ecommerce' | 'checkout' | 'success' | 'final' | 'complete'; 

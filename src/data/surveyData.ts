@@ -6,21 +6,21 @@ export const products: Product[] = [
     title: "CERAMICA 1",
     price: "€29,90",
     image: "/product1.png",
-    description: "Tazza artigianale in ceramica con delicati puntini neri. Ogni pezzo è unico, modellato a mano con argilla locale di alta qualità. Perfetta per il tuo rituale del caffè mattutino."
+    description: "Tazza con piattino in ceramica artigianale. Design elegante e funzionale, perfetta per il tuo momento del caffè."
   },
   {
     id: 2,
     title: "CERAMICA 2", 
     price: "€29,90",
     image: "/product2.png",
-    description: "Elegante set di due ciotole in ceramica con affascinante pattern splash blu. Ideali per servire o come raffinato elemento decorativo. Realizzate con smalti naturali."
+    description: "Teiera nera in ceramica artigianale. Forma classica e raffinata, ideale per le tue cerimonie del tè."
   },
   {
     id: 3,
     title: "CERAMICA 3",
     price: "€29,90",
     image: "/product3.png",
-    description: "Straordinaria teiera artigianale con suggestivo effetto galaxy. Argilla nera impreziosita da riflessi dorati. Un vero pezzo d'arte per le tue cerimonie del tè."
+    description: "Piatto con ciotola blu e bianca in ceramica artigianale. Set elegante per servire e decorare la tua tavola."
   }
 ];
 
@@ -40,7 +40,7 @@ export const surveyQuestions: SurveyQuestion[] = [
   },
   {
     id: 'gender',
-    title: 'Di che genere sei?',
+    title: 'In che genere ti identifichi?',
     type: 'radio',
     options: [
       { value: 'male', label: 'Maschile' },
@@ -63,7 +63,7 @@ export const surveyQuestions: SurveyQuestion[] = [
   },
   {
     id: 'device',
-    title: 'Con quale dispositivo effettui più frequentemente acquisti online?',
+    title: 'Con quale dispositivo stai eseguendo questo studio?',
     type: 'radio',
     options: [
       { value: 'smartphone', label: 'Smartphone' },
@@ -89,6 +89,7 @@ export const surveyQuestions: SurveyQuestion[] = [
     options: [
       { value: 'never', label: 'Mai' },
       { value: 'yearly', label: 'Una volta all\'anno' },
+      { value: 'few-yearly', label: 'Qualche volta all\'anno' },
       { value: 'monthly', label: 'Una volta al mese' },
       { value: 'few-monthly', label: 'Qualche volta al mese' },
       { value: 'weekly', label: 'Una volta a settimana' }

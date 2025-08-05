@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Consent from './pages/Consent';
 import SurveyIntro from './pages/SurveyIntro';
 import SurveyInitial from './pages/SurveyInitial';
 import SurveyLikert from './pages/SurveyLikert';
@@ -15,7 +16,7 @@ import type { SurveyStep, SurveyData } from './types';
 import './App.css';
 
 function App() {
-  const [currentStep, setCurrentStep] = useState<SurveyStep>('intro');
+  const [currentStep, setCurrentStep] = useState<SurveyStep>('consent');
   const [surveyData, setSurveyData] = useState<Partial<SurveyData>>({
     timestamp: new Date().toISOString(),
     sessionId: 'session-' + Date.now(),
@@ -35,6 +36,12 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={
+            <Consent 
+              onNext={() => nextStep('intro')}
+              updateSurveyData={updateSurveyData}
+            />
+          } />
+          <Route path="/intro" element={
             <SurveyIntro 
               onNext={() => nextStep('initial')}
               updateSurveyData={updateSurveyData}
