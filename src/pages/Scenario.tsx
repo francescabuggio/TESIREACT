@@ -7,7 +7,7 @@ interface ScenarioProps {
   surveyData: Partial<SurveyData>;
 }
 
-const Scenario = ({ onNext, updateSurveyData, surveyData }: ScenarioProps) => {
+const Scenario = ({ updateSurveyData }: ScenarioProps) => {
   const navigate = useNavigate();
 
   const handleStartEcommerce = () => {

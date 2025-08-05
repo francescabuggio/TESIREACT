@@ -10,7 +10,7 @@ interface SurveyInitialProps {
   surveyData: Partial<SurveyData>;
 }
 
-const SurveyInitial = ({ onNext, updateSurveyData, surveyData }: SurveyInitialProps) => {
+const SurveyInitial = ({ updateSurveyData }: SurveyInitialProps) => {
   const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Partial<InitialSurvey>>({});

@@ -7,7 +7,7 @@ export interface Product {
 }
 
 export interface SurveyAnswer {
-  [key: string]: string | number;
+  [key: string]: string | number | undefined;
 }
 
 export interface InitialSurvey extends SurveyAnswer {
@@ -88,6 +88,7 @@ export interface SurveyData {
   initialSurveyCompletedAt?: string;
   ecommerceStartedAt?: string;
   finalSurveyCompletedAt?: string;
+  likertAnswers?: LikertAnswer;
 }
 
 export interface SurveyQuestion {

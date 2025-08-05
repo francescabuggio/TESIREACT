@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { SurveyData, LikertAnswer } from '../types';
-import { likertQuestions, likertScale, LIKERT_PER_PAGE } from '../data/surveyData';
+import { likertQuestions, LIKERT_PER_PAGE } from '../data/surveyData';
 import { shuffleArray } from '../utils/shuffle';
 
 interface SurveyLikertProps {
@@ -10,7 +10,7 @@ interface SurveyLikertProps {
   surveyData: Partial<SurveyData>;
 }
 
-const SurveyLikert = ({ onNext, updateSurveyData, surveyData }: SurveyLikertProps) => {
+const SurveyLikert = ({ updateSurveyData, surveyData }: SurveyLikertProps) => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
   const [answers, setAnswers] = useState<LikertAnswer>({});

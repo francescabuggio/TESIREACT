@@ -49,6 +49,7 @@ interface SurveyData {
   };
   orderData?: {
     productTitle?: string;
+    productPrice?: string;
     productId?: string;
     deliveryMethod?: string;
     deliveryValue?: string;

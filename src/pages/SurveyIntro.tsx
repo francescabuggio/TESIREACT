@@ -6,7 +6,7 @@ interface SurveyIntroProps {
   updateSurveyData: (data: Partial<SurveyData>) => void;
 }
 
-const SurveyIntro = ({ onNext, updateSurveyData }: SurveyIntroProps) => {
+const SurveyIntro = ({ updateSurveyData }: SurveyIntroProps) => {
   const navigate = useNavigate();
 
   const handleStart = () => {

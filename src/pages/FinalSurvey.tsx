@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { SurveyData, FinalSurveyData } from '../types';
-import { finalSurveyQuestions, finalLikertQuestions, finalLikertScale } from '../data/surveyData';
+import { finalSurveyQuestions, finalLikertQuestions } from '../data/surveyData';
 import { shuffleArray } from '../utils/shuffle';
 
 interface FinalSurveyProps {
@@ -10,7 +10,7 @@ interface FinalSurveyProps {
   surveyData: Partial<SurveyData>;
 }
 
-const FinalSurvey = ({ onNext, updateSurveyData, surveyData }: FinalSurveyProps) => {
+const FinalSurvey = ({ updateSurveyData }: FinalSurveyProps) => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
   const [answers, setAnswers] = useState<Partial<FinalSurveyData>>({});

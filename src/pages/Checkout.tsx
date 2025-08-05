@@ -8,7 +8,7 @@ interface CheckoutProps {
   surveyData: Partial<SurveyData>;
 }
 
-const Checkout = ({ onNext, updateSurveyData, surveyData }: CheckoutProps) => {
+const Checkout = ({ updateSurveyData, surveyData }: CheckoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const product = location.state?.product as Product;

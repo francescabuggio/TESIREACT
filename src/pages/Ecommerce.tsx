@@ -9,7 +9,7 @@ interface EcommerceProps {
   surveyData: Partial<SurveyData>;
 }
 
-const Ecommerce = ({ onNext, updateSurveyData, surveyData }: EcommerceProps) => {
+const Ecommerce = ({ updateSurveyData }: EcommerceProps) => {
   const navigate = useNavigate();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productInteractions, setProductInteractions] = useState<{ [key: number]: ProductInteraction }>({});
