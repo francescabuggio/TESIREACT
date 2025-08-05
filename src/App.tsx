@@ -10,6 +10,7 @@ import Success from './pages/Success';
 import FinalSurvey from './pages/FinalSurvey';
 import Complete from './pages/Complete';
 import Admin from './pages/Admin';
+import Spiegazione from './pages/Spiegazione';
 import type { SurveyStep, SurveyData } from './types';
 import './App.css';
 
@@ -94,6 +95,7 @@ function App() {
             />
           } />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/spiegazione" element={<Spiegazione />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
