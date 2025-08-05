@@ -75,17 +75,22 @@ const FinalSurvey = ({ updateSurveyData }: FinalSurveyProps) => {
             fontSize: '0.85rem' 
           }}>
             <strong>Legenda:</strong><br />
-            Mai | Raramente | A volte | Spesso | Sempre
+            <span className="likert-legend-desktop">
+              Mai | Raramente | A volte | Spesso | Sempre
+            </span>
+            <span className="likert-legend-mobile">
+              Mai | Raramente | A volte | Spesso | Sempre
+            </span>
           </div>
           
           <table className="likert-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={{ width: '60%', textAlign: 'left', padding: '0.8rem', background: '#f8f9fa' }}>
+                <th className="likert-question-header" style={{ width: '60%', textAlign: 'left', padding: '0.8rem', background: '#f8f9fa' }}>
                   Frequenza
                 </th>
                 {question.options.map(opt => (
-                  <th key={opt.value} style={{ width: '8%', textAlign: 'center', padding: '0.8rem', background: '#f8f9fa' }}>
+                  <th key={opt.value} className="likert-scale-header" style={{ width: '8%', textAlign: 'center', padding: '0.8rem', background: '#f8f9fa' }}>
                     {opt.label}
                   </th>
                 ))}
@@ -93,17 +98,18 @@ const FinalSurvey = ({ updateSurveyData }: FinalSurveyProps) => {
             </thead>
             <tbody>
               <tr>
-                <td style={{ padding: '0.8rem', borderBottom: '1px solid #eee', fontSize: '0.9rem' }}>
+                <td className="likert-question-cell" style={{ padding: '0.8rem', borderBottom: '1px solid #eee', fontSize: '0.9rem' }}>
                   Considerazione ambientale
                 </td>
                 {question.options.map(opt => (
-                  <td key={opt.value} style={{ padding: '0.8rem', textAlign: 'center', borderBottom: '1px solid #eee' }}>
+                  <td key={opt.value} className="likert-scale-cell" style={{ padding: '0.8rem', textAlign: 'center', borderBottom: '1px solid #eee' }}>
                     <input 
                       type="radio" 
                       name={question.id} 
                       value={opt.value} 
                       onChange={() => handleAnswer(question.id, opt.value)}
                       checked={answers[question.id] === opt.value}
+                      className="likert-radio"
                       style={{ transform: 'scale(1.2)' }}
                     />
                   </td>
@@ -171,18 +177,23 @@ const FinalSurvey = ({ updateSurveyData }: FinalSurveyProps) => {
           fontSize: '0.85rem' 
         }}>
           <strong>Legenda:</strong><br />
-          1 = Totalmente in disaccordo | 2 = Molto in disaccordo | 3 = Abbastanza in disaccordo | 
-          4 = Né d'accordo né in disaccordo | 5 = Abbastanza d'accordo | 6 = Molto d'accordo | 7 = Totalmente d'accordo
+          <span className="likert-legend-desktop">
+            1 = Totalmente in disaccordo | 2 = Molto in disaccordo | 3 = Abbastanza in disaccordo | 
+            4 = Né d'accordo né in disaccordo | 5 = Abbastanza d'accordo | 6 = Molto d'accordo | 7 = Totalmente d'accordo
+          </span>
+          <span className="likert-legend-mobile">
+            1=Tot.disaccordo | 2=Molto disaccordo | 3=Abb.disaccordo | 4=Neutro | 5=Abb.accordo | 6=Molto accordo | 7=Tot.accordo
+          </span>
         </div>
         
         <table className="likert-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={{ width: '60%', textAlign: 'left', padding: '0.8rem', background: '#f8f9fa' }}>
+              <th className="likert-question-header" style={{ width: '60%', textAlign: 'left', padding: '0.8rem', background: '#f8f9fa' }}>
                 Affermazione
               </th>
               {[0,1,2,3,4,5,6].map(i => (
-                <th key={i} style={{ width: '5.7%', textAlign: 'center', padding: '0.8rem', background: '#f8f9fa' }}>
+                <th key={i} className="likert-scale-header" style={{ width: '5.7%', textAlign: 'center', padding: '0.8rem', background: '#f8f9fa' }}>
                   {i + 1}
                 </th>
               ))}
@@ -191,17 +202,18 @@ const FinalSurvey = ({ updateSurveyData }: FinalSurveyProps) => {
           <tbody>
             {currentQuestions.map(q => (
               <tr key={q.id}>
-                <td style={{ padding: '0.8rem', borderBottom: '1px solid #eee', fontSize: '0.9rem' }}>
+                <td className="likert-question-cell" style={{ padding: '0.8rem', borderBottom: '1px solid #eee', fontSize: '0.9rem' }}>
                   {q.text}
                 </td>
                 {[0,1,2,3,4,5,6].map(i => (
-                  <td key={i} style={{ padding: '0.8rem', textAlign: 'center', borderBottom: '1px solid #eee' }}>
+                  <td key={i} className="likert-scale-cell" style={{ padding: '0.8rem', textAlign: 'center', borderBottom: '1px solid #eee' }}>
                     <input 
                       type="radio" 
                       name={q.id} 
                       value={i} 
                       onChange={() => handleAnswer(q.id, i)}
                       checked={answers[q.id] === i}
+                      className="likert-radio"
                       style={{ transform: 'scale(1.2)' }}
                     />
                   </td>

@@ -909,8 +909,8 @@ header h1 {
   }
   
   .survey-container {
-    padding: 1rem !important;
-    margin: 0.5rem !important;
+    padding: 0.8rem !important;
+    margin: 0.2rem !important;
   }
   
   .question-group {
@@ -1004,17 +1004,17 @@ header h1 {
   }
   
   .consent-page {
-    padding: 0.8rem 0.3rem !important;
+    padding: 0.5rem 0.1rem !important;
   }
   
   .consent-container {
-    padding: 1.2rem !important;
-    margin: 0.3rem !important;
+    padding: 1rem !important;
+    margin: 0.1rem !important;
   }
   
   .survey-container {
-    padding: 0.8rem !important;
-    margin: 0.3rem !important;
+    padding: 0.6rem !important;
+    margin: 0.1rem !important;
   }
   
   .question-group {

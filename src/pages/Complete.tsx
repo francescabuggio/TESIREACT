@@ -71,11 +71,43 @@ const Complete = ({ surveyData }: CompleteProps) => {
         <h1>SONDAGGIO ECOMMERCE - UNITO</h1>
       </div>
       <div style={{ textAlign: 'center', padding: '3rem 2rem' }}>
-        <p style={{ fontSize: '1.2rem', color: '#666', lineHeight: '1.6', marginBottom: '1rem' }}>
-          We thank you for your time spent taking this survey.
-        </p>
-        <p style={{ fontSize: '1.2rem', color: '#666', lineHeight: '1.6' }}>
-          Your response has been recorded.
+        <div style={{ 
+          background: '#f8f9fa', 
+          padding: '2rem', 
+          borderRadius: '12px', 
+          marginBottom: '2rem',
+          border: '1px solid #e9ecef'
+        }}>
+          <h2 style={{ 
+            color: '#2c3e50', 
+            marginBottom: '1.5rem', 
+            fontSize: '1.5rem',
+            fontWeight: '600'
+          }}>
+            🎉 Studio Completato con Successo!
+          </h2>
+          <p style={{ 
+            fontSize: '1.1rem', 
+            color: '#495057', 
+            lineHeight: '1.7', 
+            marginBottom: '1rem' 
+          }}>
+            La tua risposta è stata salvata nel database.
+          </p>
+          <p style={{ 
+            fontSize: '1.1rem', 
+            color: '#495057', 
+            lineHeight: '1.7' 
+          }}>
+            Ti ringraziamo per il tempo dedicato alla partecipazione a questo studio universitario.
+          </p>
+        </div>
+        <p style={{ 
+          fontSize: '0.9rem', 
+          color: '#6c757d', 
+          fontStyle: 'italic' 
+        }}>
+          I tuoi dati sono stati trattati in forma anonima e nel rispetto delle normative sulla privacy.
         </p>
       </div>
     </div>
