@@ -14,8 +14,9 @@ const Checkout = ({ updateSurveyData, surveyData }: CheckoutProps) => {
   const product = location.state?.product as Product;
   
   const [checkoutStartTime] = useState(Date.now());
-  const [variantNumber] = useState(Math.floor(Math.random() * 8) + 1);
-  const [isPreSelectedCC] = useState(variantNumber > 4);
+  const [variantNumber] = useState(Math.floor(Math.random() * 9) + 1);
+  const [isPreSelectedCC] = useState(variantNumber > 4 && variantNumber !== 9);
+  const [isCCOnly] = useState(variantNumber === 9);
   const [selectedDelivery, setSelectedDelivery] = useState(isPreSelectedCC ? 'cc' : 'home');
   const [formData, setFormData] = useState({
     address: ''
@@ -24,6 +25,10 @@ const Checkout = ({ updateSurveyData, surveyData }: CheckoutProps) => {
 
   // Funzione per convertire il numero della variante nel tipo
   const getVariantType = (variant: number): string => {
+    if (variant === 9) {
+      return 'Click & Collect senza pallino verde e senza niente';
+    }
+    
     const baseVariant = variant > 4 ? variant - 4 : variant;
     const isPreSelected = variant > 4;
     
@@ -111,6 +116,10 @@ const Checkout = ({ updateSurveyData, surveyData }: CheckoutProps) => {
   };
 
   const getExtraContent = () => {
+    if (variantNumber === 9) {
+      return null; // No extra content for CC-only variant
+    }
+    
     const baseVariant = variantNumber > 4 ? variantNumber - 4 : variantNumber;
     
     if (baseVariant === 2) {
@@ -174,7 +183,7 @@ const Checkout = ({ updateSurveyData, surveyData }: CheckoutProps) => {
               onClick={() => setSelectedDelivery('cc')}
             >
               <div className="delivery-title">
-                <span className="eco-icon">◆</span> Click & Collect
+                {variantNumber !== 9 && <span className="eco-icon">◆</span>} Click & Collect
               </div>
               <div className="delivery-subtitle">2–3 giorni – Ritira al punto di raccolta</div>
               {getExtraContent()}
