@@ -11,7 +11,6 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { getSurveyData } from '../lib/supabase';
-import * as XLSX from 'xlsx';
 
 ChartJS.register(
   CategoryScale,
@@ -102,8 +101,6 @@ interface Stats {
   productDistribution: Record<string, number>;
   deliveryDistribution: Record<string, number>;
   checkoutVariantDistribution: Record<string, number>;
-  // Delivery choice per checkout variant (for grouped bar chart)
-  deliveryByVariant: { labels: string[]; home: number[]; cc: number[] };
   checkoutTimeRanges: { labels: string[]; data: number[]; };
   
   // Likert Scale Questions (Initial Survey)
@@ -123,8 +120,6 @@ const Admin = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // No label normalization; we only compute an order so original labels remain intact
 
   useEffect(() => {
     loadData();
@@ -258,7 +253,6 @@ const Admin = () => {
     const productDistribution: Record<string, number> = {};
     const deliveryDistribution: Record<string, number> = {};
     const checkoutVariantDistribution: Record<string, number> = {};
-    const deliveryByVariantMap: Record<string, { home: number; cc: number }> = {};
     
     // Tempi
     const checkoutTimes: number[] = [];
@@ -303,20 +297,6 @@ const Admin = () => {
       }
       if (item.checkoutData?.variant) {
         checkoutVariantDistribution[item.checkoutData.variant] = (checkoutVariantDistribution[item.checkoutData.variant] || 0) + 1;
-      }
-
-      // Delivery choice per checkout variant
-      const variant: string | undefined = item.checkoutData?.variant as string | undefined;
-      const deliveryValue: string | undefined = item.orderData?.deliveryValue as string | undefined;
-      if (variant && deliveryValue) {
-        if (!deliveryByVariantMap[variant]) {
-          deliveryByVariantMap[variant] = { home: 0, cc: 0 };
-        }
-        if (deliveryValue === 'home') {
-          deliveryByVariantMap[variant].home += 1;
-        } else if (deliveryValue === 'cc') {
-          deliveryByVariantMap[variant].cc += 1;
-        }
       }
 
       // Times
@@ -404,25 +384,6 @@ const Admin = () => {
       ? `${Math.round(totalTimes.reduce((a, b) => a + b, 0) / totalTimes.length / 60000)}min`
       : '-';
 
-    // Prepare deliveryByVariant arrays
-    // Sort labels so that non-preselected and preselected variants are adjacent
-    const getVariantPriority = (label: string): number => {
-      const l = label.toLowerCase();
-      const isPre = l.includes('pre') && (l.includes('selez') || l.includes('impost'));
-      if (l.includes('standard')) return isPre ? 1 : 0;
-      if (l.includes('ecologic')) return isPre ? 3 : 2; // "scelta ecologica"
-      if (l.includes('emission')) return isPre ? 5 : 4; // emissioni / co2
-      if (l.includes('dettagl')) return isPre ? 7 : 6;  // dettagli
-      return 999;
-    };
-    const variantLabels: string[] = Object.keys(deliveryByVariantMap)
-      .sort((a, b) => getVariantPriority(a) - getVariantPriority(b));
-    const deliveryByVariant = {
-      labels: variantLabels,
-      home: variantLabels.map(v => deliveryByVariantMap[v]?.home ?? 0),
-      cc: variantLabels.map(v => deliveryByVariantMap[v]?.cc ?? 0)
-    };
-
     return {
       totalResponses: data.length,
       lastUpdate: new Date().toISOString(),
@@ -437,7 +398,6 @@ const Admin = () => {
       productDistribution,
       deliveryDistribution,
       checkoutVariantDistribution,
-      deliveryByVariant,
       checkoutTimeRanges,
       likertAverages,
       environmentalConsiderationDistribution,
@@ -493,416 +453,6 @@ const Admin = () => {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-  };
-
-  const exportExcel = () => {
-    if (surveyData.length === 0) {
-      alert('Nessun dato da esportare');
-      return;
-    }
-
-    const headers = [
-      'Timestamp', 'SessionID', 'Age', 'Gender', 'Education', 'Device', 
-      'Financial', 'Frequency', 'ProductTitle', 'ProductID', 'DeliveryMethod', 
-      'DeliveryValue', 'CheckoutTimeSeconds', 'CheckoutVariant',
-      'EnvironmentalConsideration', 'TotalTimeMinutes', 'ProductClicks'
-    ];
-
-    const rows: (string | number)[][] = surveyData.map((item: SurveyData) => [
-      item.timestamp || '',
-      item.sessionId || '',
-      item.initialSurvey?.age || '',
-      item.initialSurvey?.gender || '',
-      item.initialSurvey?.education || '',
-      item.initialSurvey?.device || '',
-      item.initialSurvey?.financial || '',
-      item.initialSurvey?.frequency || '',
-      item.orderData?.productTitle || '',
-      item.orderData?.productId || '',
-      item.orderData?.deliveryMethod || '',
-      item.orderData?.deliveryValue || '',
-      item.orderData?.checkoutTimeSpent ? Math.round(item.orderData.checkoutTimeSpent / 1000) : '',
-      item.checkoutData?.variant || '',
-      item.finalSurvey?.environmental_consideration || '',
-      item.totalTimeSpent ? Math.round(item.totalTimeSpent / 60000) : '',
-      item.productInteractions ? Object.values(item.productInteractions).reduce((sum: number, data: any) => sum + (data?.clickCount || 0), 0) : ''
-    ]);
-
-    const escapeHTML = (value: string) => (
-      value
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-    );
-
-    let html = '<table><thead><tr>';
-    html += headers.map(h => `<th>${escapeHTML(String(h))}</th>`).join('');
-    html += '</tr></thead><tbody>';
-    rows.forEach(row => {
-      html += '<tr>' + row.map(field => `<td>${escapeHTML(String(field))}</td>`).join('') + '</tr>';
-    });
-    html += '</tbody></table>';
-
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `survey-data-${new Date().toISOString().split('T')[0]}.xls`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
-
-  const exportExcelTextual = () => {
-    if (surveyData.length === 0) {
-      alert('Nessun dato da esportare');
-      return;
-    }
-
-    const headers = [
-      'Timestamp', 'SessionID', 'Age', 'Gender', 'Education', 'Device',
-      'Financial', 'Frequency', 'ProductTitle', 'ProductID', 'DeliveryMethod',
-      'DeliveryValue', 'CheckoutTimeSeconds', 'CheckoutVariant',
-      'EnvironmentalConsideration', 'TotalTimeMinutes', 'ProductClicks',
-      'StartedAt', 'CompletedAt'
-    ];
-
-    const initialLikertFields = [
-      'get_tired', 'open_tabs', 'save_time', 'avoid_hassle', 'easy_compare',
-      'end_up_sites', 'find_website', 'easy_shopping', 'download_files',
-      'enjoy_shopping', 'buy_unavailable', 'stress_financial', 'confusing_structure'
-    ];
-    const finalLikertFields = [
-      'feel_guilty', 'difficult_design', 'feel_responsible', 'difficult_options',
-      'effort_understand', 'difficult_overview', 'feel_irresponsible', 'useful_descriptions'
-    ];
-
-    const headersWithSurveys = [
-      ...headers,
-      ...initialLikertFields.map(f => `initial_${f}`),
-      ...finalLikertFields.map(f => `final_${f}`)
-    ];
-
-    const rows: (string | number)[][] = surveyData.map((item: any) => [
-      item.timestamp || '',
-      item.sessionId || '',
-      item.initialSurvey?.age || '',
-      item.initialSurvey?.gender || '',
-      item.initialSurvey?.education || '',
-      item.initialSurvey?.device || '',
-      item.initialSurvey?.financial || '',
-      item.initialSurvey?.frequency || '',
-      item.orderData?.productTitle || '',
-      item.orderData?.productId || '',
-      item.orderData?.deliveryMethod || '',
-      item.orderData?.deliveryValue || '',
-      item.orderData?.checkoutTimeSpent ? Math.round(item.orderData.checkoutTimeSpent / 1000) : '',
-      item.checkoutData?.variant || '',
-      item.finalSurvey?.environmental_consideration || '',
-      item.totalTimeSpent ? Math.round(item.totalTimeSpent / 60000) : '',
-      item.productInteractions ? Object.values(item.productInteractions).reduce((sum: number, data: any) => sum + (data?.clickCount || 0), 0) : '',
-      item.timestamp || '',
-      item.completedAt || ''
-    ]);
-
-    const wb = XLSX.utils.book_new();
-    const rowsWithSurveys: (string | number)[][] = surveyData.map((item: any) => {
-      const base = [
-        item.timestamp || '',
-        item.sessionId || '',
-        item.initialSurvey?.age || '',
-        item.initialSurvey?.gender || '',
-        item.initialSurvey?.education || '',
-        item.initialSurvey?.device || '',
-        item.initialSurvey?.financial || '',
-        item.initialSurvey?.frequency || '',
-        item.orderData?.productTitle || '',
-        item.orderData?.productId || '',
-        item.orderData?.deliveryMethod || '',
-        item.orderData?.deliveryValue || '',
-        item.orderData?.checkoutTimeSpent ? Math.round(item.orderData.checkoutTimeSpent / 1000) : '',
-        item.checkoutData?.variant || '',
-        item.finalSurvey?.environmental_consideration || '',
-        item.totalTimeSpent ? Math.round(item.totalTimeSpent / 60000) : '',
-        item.productInteractions ? Object.values(item.productInteractions).reduce((sum: number, data: any) => sum + (data?.clickCount || 0), 0) : '',
-        item.timestamp || '',
-        item.completedAt || ''
-      ];
-      const initialLikert = initialLikertFields.map((key) => {
-        const v = item.initialSurvey?.[key];
-        return typeof v === 'number' ? v : '';
-      });
-      const finalLikert = finalLikertFields.map((key) => {
-        const v = item.finalSurvey?.[key];
-        return typeof v === 'number' ? v : '';
-      });
-      return [...base, ...initialLikert, ...finalLikert];
-    });
-
-    const wsData = [headersWithSurveys, ...rowsWithSurveys];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Dati');
-
-    // Aggregati: Tipi di Checkout vs Scelta Spedizione (conteggi per variante)
-    if (stats) {
-      const aggHeaders = ['Variante', 'Domicilio', 'Click & Collect', 'Totale'];
-      const aggRows: (string | number)[][] = stats.deliveryByVariant.labels.map((label, idx) => {
-        const home = stats.deliveryByVariant.home[idx] ?? 0;
-        const cc = stats.deliveryByVariant.cc[idx] ?? 0;
-        return [label, home, cc, home + cc];
-      });
-      const wsAgg = XLSX.utils.aoa_to_sheet([aggHeaders, ...aggRows]);
-      XLSX.utils.book_append_sheet(wb, wsAgg, 'Conteggi per Variante');
-    }
-
-    // Analisi temporale: distribuzioni e medie
-    if (stats) {
-      const timeHeader = ['Range', 'Numero utenti'];
-      const totalRows = stats.timeSpentRanges.labels.map((label, idx) => [label, stats.timeSpentRanges.data[idx] ?? 0]);
-      const checkoutRows = stats.checkoutTimeRanges.labels.map((label, idx) => [label, stats.checkoutTimeRanges.data[idx] ?? 0]);
-
-      const checkoutTimes = surveyData
-        .map(i => i.orderData?.checkoutTimeSpent)
-        .filter((v): v is number => typeof v === 'number');
-      const totalTimes = surveyData
-        .map(i => i.totalTimeSpent)
-        .filter((v): v is number => typeof v === 'number');
-      const avgCheckoutS = checkoutTimes.length ? Math.round(checkoutTimes.reduce((a, b) => a + b, 0) / checkoutTimes.length / 1000) : 0;
-      const avgTotalMin = totalTimes.length ? Math.round(totalTimes.reduce((a, b) => a + b, 0) / totalTimes.length / 60000) : 0;
-
-      const wsTime = XLSX.utils.aoa_to_sheet([
-        ['Tempo Totale Speso'],
-        timeHeader,
-        ...totalRows,
-        [''],
-        ['Tempo nel Checkout'],
-        timeHeader,
-        ...checkoutRows,
-        [''],
-        ['Medie'],
-        ['Media Checkout (s)', avgCheckoutS],
-        ['Media Totale (min)', avgTotalMin]
-      ]);
-      XLSX.utils.book_append_sheet(wb, wsTime, 'Analisi Temporale');
-    }
-
-    const legendRows: (string | number)[][] = [
-      ['Campo', 'Valori / Unità', 'Descrizione'],
-      ['DeliveryValue', 'home | cc', 'home = domicilio, cc = Click & Collect'],
-      ['CheckoutTimeSeconds', 'secondi', 'Tempo trascorso nel checkout'],
-      ['TotalTimeMinutes', 'minuti', 'Tempo totale dall\'inizio alla fine'],
-      ['StartedAt', 'ISO-8601', 'Timestamp inizio (ISO string)'],
-      ['CompletedAt', 'ISO-8601', 'Timestamp fine (ISO string)'],
-      ['initial_*', '1..7', 'Risposte scala Likert iniziale (1=min, 7=max)'],
-      ['final_*', '1..7', 'Risposte survey finale (Likert 1=min, 7=max)'],
-      ['EnvironmentalConsideration', 'Mai | Raramente | A volte | Spesso | Sempre', 'Considerazione ambientale']
-    ];
-    // Mappatura completa scala Likert 1-7
-    legendRows.push(['', '', '']);
-    legendRows.push(['Likert (initial_* / final_*)', 1, 'Fortemente in disaccordo']);
-    legendRows.push(['Likert (initial_* / final_*)', 2, 'Disaccordo']);
-    legendRows.push(['Likert (initial_* / final_*)', 3, 'Parzialmente in disaccordo']);
-    legendRows.push(['Likert (initial_* / final_*)', 4, 'Neutro/Indifferente']);
-    legendRows.push(['Likert (initial_* / final_*)', 5, 'Parzialmente d\'accordo']);
-    legendRows.push(['Likert (initial_* / final_*)', 6, 'D\'accordo']);
-    legendRows.push(['Likert (initial_* / final_*)', 7, 'Fortemente d\'accordo']);
-
-    const wsLegend = XLSX.utils.aoa_to_sheet(legendRows);
-    XLSX.utils.book_append_sheet(wb, wsLegend, 'Legenda');
-
-    XLSX.writeFile(wb, `survey-data-testuale-${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
-
-  const exportExcelNumeric = () => {
-    if (surveyData.length === 0) {
-      alert('Nessun dato da esportare');
-      return;
-    }
-
-    const headers = [
-      'TimestampEpochMs', 'SessionID_Code', 'Age_Code', 'Gender_Code', 'Education_Code', 'Device_Code',
-      'Financial_Code', 'Frequency_Code', 'ProductTitle_Code', 'ProductID_Code', 'DeliveryMethod_Code',
-      'DeliveryValue_Code', 'CheckoutTimeSeconds', 'CheckoutVariant_Code',
-      'EnvironmentalConsideration_Code', 'TotalTimeMinutes', 'ProductClicks',
-      'StartedAtEpochMs', 'CompletedAtEpochMs'
-    ];
-
-    const initialLikertFields = [
-      'get_tired', 'open_tabs', 'save_time', 'avoid_hassle', 'easy_compare',
-      'end_up_sites', 'find_website', 'easy_shopping', 'download_files',
-      'enjoy_shopping', 'buy_unavailable', 'stress_financial', 'confusing_structure'
-    ];
-    const finalLikertFields = [
-      'feel_guilty', 'difficult_design', 'feel_responsible', 'difficult_options',
-      'effort_understand', 'difficult_overview', 'feel_irresponsible', 'useful_descriptions'
-    ];
-
-    const headersWithSurveys = [
-      ...headers,
-      ...initialLikertFields.map(f => `initial_${f}`),
-      ...finalLikertFields.map(f => `final_${f}`)
-    ];
-
-    const buildCodeMap = (values: (string | undefined | null)[]) => {
-      const map = new Map<string, number>();
-      let next = 1;
-      values.forEach(v => {
-        const key = (v ?? '').toString();
-        if (key && !map.has(key)) map.set(key, next++);
-      });
-      return map;
-    };
-
-    const sessionIdMap = buildCodeMap(surveyData.map(i => i.sessionId));
-    const ageMap = buildCodeMap(surveyData.map(i => i.initialSurvey?.age));
-    const genderMap = buildCodeMap(surveyData.map(i => i.initialSurvey?.gender));
-    const educationMap = buildCodeMap(surveyData.map(i => i.initialSurvey?.education));
-    const deviceMap = buildCodeMap(surveyData.map(i => i.initialSurvey?.device));
-    const financialMap = buildCodeMap(surveyData.map(i => i.initialSurvey?.financial));
-    const frequencyMap = buildCodeMap(surveyData.map(i => i.initialSurvey?.frequency));
-    const productTitleMap = buildCodeMap(surveyData.map(i => i.orderData?.productTitle));
-    const productIdMap = buildCodeMap(surveyData.map(i => i.orderData?.productId));
-    const deliveryMethodMap = buildCodeMap(surveyData.map(i => i.orderData?.deliveryMethod));
-    const deliveryValueMap = buildCodeMap(surveyData.map(i => i.orderData?.deliveryValue));
-    const checkoutVariantMap = buildCodeMap(surveyData.map(i => i.checkoutData?.variant));
-    const envConsiderationMap = buildCodeMap(surveyData.map(i => i.finalSurvey?.environmental_consideration));
-
-    const codeOrZero = (map: Map<string, number>, value: any) => {
-      const key = (value ?? '').toString();
-      if (!key) return 0;
-      return map.get(key) || 0;
-    };
-
-    const rows: (string | number)[][] = surveyData.map((item: any) => {
-      const base = [
-        item.timestamp ? Date.parse(item.timestamp) : 0,
-        codeOrZero(sessionIdMap, item.sessionId),
-        codeOrZero(ageMap, item.initialSurvey?.age),
-        codeOrZero(genderMap, item.initialSurvey?.gender),
-        codeOrZero(educationMap, item.initialSurvey?.education),
-        codeOrZero(deviceMap, item.initialSurvey?.device),
-        codeOrZero(financialMap, item.initialSurvey?.financial),
-        codeOrZero(frequencyMap, item.initialSurvey?.frequency),
-        codeOrZero(productTitleMap, item.orderData?.productTitle),
-        codeOrZero(productIdMap, item.orderData?.productId),
-        codeOrZero(deliveryMethodMap, item.orderData?.deliveryMethod),
-        codeOrZero(deliveryValueMap, item.orderData?.deliveryValue),
-        item.orderData?.checkoutTimeSpent ? Math.round(item.orderData.checkoutTimeSpent / 1000) : 0,
-        codeOrZero(checkoutVariantMap, item.checkoutData?.variant),
-        codeOrZero(envConsiderationMap, item.finalSurvey?.environmental_consideration),
-        item.totalTimeSpent ? Math.round(item.totalTimeSpent / 60000) : 0,
-        item.productInteractions ? Object.values(item.productInteractions).reduce((sum: number, data: any) => sum + (data?.clickCount || 0), 0) : 0,
-        item.timestamp ? Date.parse(item.timestamp) : 0,
-        item.completedAt ? Date.parse(item.completedAt) : 0
-      ];
-      const initialLikert = initialLikertFields.map((key) => {
-        const v = item.initialSurvey?.[key];
-        return typeof v === 'number' ? v : 0;
-      });
-      const finalLikert = finalLikertFields.map((key) => {
-        const v = item.finalSurvey?.[key];
-        return typeof v === 'number' ? v : 0;
-      });
-      return [...base, ...initialLikert, ...finalLikert];
-    });
-
-    const wb = XLSX.utils.book_new();
-    const wsData = [headersWithSurveys, ...rows];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Dati');
-
-    // Aggregati: Tipi di Checkout vs Scelta Spedizione (conteggi per variante)
-    if (stats) {
-      const aggHeaders = ['Variante', 'Domicilio', 'Click & Collect', 'Totale'];
-      const aggRows: (string | number)[][] = stats.deliveryByVariant.labels.map((label, idx) => {
-        const home = stats.deliveryByVariant.home[idx] ?? 0;
-        const cc = stats.deliveryByVariant.cc[idx] ?? 0;
-        return [label, home, cc, home + cc];
-      });
-      const wsAgg = XLSX.utils.aoa_to_sheet([aggHeaders, ...aggRows]);
-      XLSX.utils.book_append_sheet(wb, wsAgg, 'Conteggi per Variante');
-    }
-
-    // Analisi temporale: distribuzioni e medie
-    if (stats) {
-      const timeHeader = ['Range', 'Numero utenti'];
-      const totalRows = stats.timeSpentRanges.labels.map((label, idx) => [label, stats.timeSpentRanges.data[idx] ?? 0]);
-      const checkoutRows = stats.checkoutTimeRanges.labels.map((label, idx) => [label, stats.checkoutTimeRanges.data[idx] ?? 0]);
-
-      const checkoutTimes = surveyData
-        .map(i => i.orderData?.checkoutTimeSpent)
-        .filter((v): v is number => typeof v === 'number');
-      const totalTimes = surveyData
-        .map(i => i.totalTimeSpent)
-        .filter((v): v is number => typeof v === 'number');
-      const avgCheckoutS = checkoutTimes.length ? Math.round(checkoutTimes.reduce((a, b) => a + b, 0) / checkoutTimes.length / 1000) : 0;
-      const avgTotalMin = totalTimes.length ? Math.round(totalTimes.reduce((a, b) => a + b, 0) / totalTimes.length / 60000) : 0;
-
-      const wsTime = XLSX.utils.aoa_to_sheet([
-        ['Tempo Totale Speso'],
-        timeHeader,
-        ...totalRows,
-        [''],
-        ['Tempo nel Checkout'],
-        timeHeader,
-        ...checkoutRows,
-        [''],
-        ['Medie'],
-        ['Media Checkout (s)', avgCheckoutS],
-        ['Media Totale (min)', avgTotalMin]
-      ]);
-      XLSX.utils.book_append_sheet(wb, wsTime, 'Analisi Temporale');
-    }
-
-    const legendRows: (string | number)[][] = [
-      ['Campo', 'Codice', 'Valore']
-    ];
-
-    const pushLegend = (field: string, map: Map<string, number>) => {
-      if (map.size === 0) return;
-      legendRows.push([field, '', '']);
-      Array.from(map.entries())
-        .sort((a, b) => a[1] - b[1])
-        .forEach(([val, code]) => legendRows.push([field, code, val]));
-      legendRows.push(['', '', '']);
-    };
-
-    pushLegend('SessionID', sessionIdMap);
-    pushLegend('Age', ageMap);
-    pushLegend('Gender', genderMap);
-    pushLegend('Education', educationMap);
-    pushLegend('Device', deviceMap);
-    pushLegend('Financial', financialMap);
-    pushLegend('Frequency', frequencyMap);
-    pushLegend('ProductTitle', productTitleMap);
-    pushLegend('ProductID', productIdMap);
-    pushLegend('DeliveryMethod', deliveryMethodMap);
-    pushLegend('DeliveryValue', deliveryValueMap);
-    pushLegend('CheckoutVariant', checkoutVariantMap);
-    pushLegend('EnvironmentalConsideration', envConsiderationMap);
-
-    // Unità e scale
-    legendRows.push(['', '', '']);
-    legendRows.push(['CheckoutTimeSeconds', '', 'secondi']);
-    legendRows.push(['TotalTimeMinutes', '', 'minuti']);
-    legendRows.push(['StartedAtEpochMs', '', 'millisecondi da Unix epoch']);
-    legendRows.push(['CompletedAtEpochMs', '', 'millisecondi da Unix epoch']);
-    // Mappatura completa scala Likert 1-7
-    legendRows.push(['Likert (initial_* / final_*)', 1, 'Fortemente in disaccordo']);
-    legendRows.push(['Likert (initial_* / final_*)', 2, 'Disaccordo']);
-    legendRows.push(['Likert (initial_* / final_*)', 3, 'Parzialmente in disaccordo']);
-    legendRows.push(['Likert (initial_* / final_*)', 4, 'Neutro/Indifferente']);
-    legendRows.push(['Likert (initial_* / final_*)', 5, 'Parzialmente d\'accordo']);
-    legendRows.push(['Likert (initial_* / final_*)', 6, 'D\'accordo']);
-    legendRows.push(['Likert (initial_* / final_*)', 7, 'Fortemente d\'accordo']);
-
-    const wsLegend = XLSX.utils.aoa_to_sheet(legendRows);
-    XLSX.utils.book_append_sheet(wb, wsLegend, 'Legenda');
-
-    XLSX.writeFile(wb, `survey-data-numerico-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const viewDetails = (index: number) => {
@@ -1210,75 +760,6 @@ ${JSON.stringify(item, null, 2)}
                 />
               </div>
             </div>
-
-            <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '1rem', color: '#333' }}>
-                Tipi di Checkout vs Scelta Spedizione
-              </div>
-              <div style={{ position: 'relative', height: '350px', width: '100%' }}>
-                <Bar
-                  data={{
-                    labels: stats.deliveryByVariant.labels,
-                    datasets: [
-                      {
-                        label: 'Spedizione a domicilio',
-                        data: stats.deliveryByVariant.home,
-                        backgroundColor: '#1e88e5'
-                      },
-                      {
-                        label: 'Click & Collect',
-                        data: stats.deliveryByVariant.cc,
-                        backgroundColor: '#43a047'
-                      }
-                    ]
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-                    plugins: { legend: { position: 'bottom' } }
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '1rem', color: '#333' }}>
-                Tabella Conteggi per Variante
-              </div>
-              <div style={{ overflowY: 'visible' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left', background: '#f8f9fa', color: '#333' }}>Variante</th>
-                      <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left', background: '#f8f9fa', color: '#333' }}>Domicilio</th>
-                      <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left', background: '#f8f9fa', color: '#333' }}>Click & Collect</th>
-                      <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left', background: '#f8f9fa', color: '#333' }}>Totale</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.deliveryByVariant.labels.map((label, idx) => {
-                      const homeCount = stats.deliveryByVariant.home[idx] ?? 0;
-                      const ccCount = stats.deliveryByVariant.cc[idx] ?? 0;
-                      const total = homeCount + ccCount;
-                      return (
-                        <tr key={label}>
-                          <td style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid #f1f3f4' }}>{label}</td>
-                          <td style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid #f1f3f4' }}>{homeCount}</td>
-                          <td style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid #f1f3f4' }}>{ccCount}</td>
-                          <td style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid #f1f3f4' }}>{total}</td>
-                        </tr>
-                      );
-                    })}
-                    {stats.deliveryByVariant.labels.length === 0 && (
-                      <tr>
-                        <td colSpan={4} style={{ padding: '0.6rem', textAlign: 'center', color: '#666' }}>Nessun dato</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -1536,38 +1017,6 @@ ${JSON.stringify(item, null, 2)}
               }}
             >
               📥 Esporta CSV
-            </button>
-            <button 
-              onClick={exportExcelTextual}
-              style={{ 
-                background: '#ffc107', 
-                color: '#212529', 
-                border: 'none', 
-                padding: '0.75rem 1.5rem', 
-                borderRadius: '8px', 
-                cursor: 'pointer', 
-                fontSize: '1rem', 
-                marginBottom: '1rem',
-                marginLeft: '0.5rem'
-              }}
-            >
-              📊 Excel Testuale
-            </button>
-            <button 
-              onClick={exportExcelNumeric}
-              style={{ 
-                background: '#17a2b8', 
-                color: 'white', 
-                border: 'none', 
-                padding: '0.75rem 1.5rem', 
-                borderRadius: '8px', 
-                cursor: 'pointer', 
-                fontSize: '1rem', 
-                marginBottom: '1rem',
-                marginLeft: '0.5rem'
-              }}
-            >
-              🔢 Excel Numerico + Legenda
             </button>
             <h3 style={{ margin: 0, display: 'inline-block', marginLeft: '1rem' }}>Dati Dettagliati</h3>
           </div>
