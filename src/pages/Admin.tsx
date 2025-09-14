@@ -101,8 +101,6 @@ interface Stats {
   productDistribution: Record<string, number>;
   deliveryDistribution: Record<string, number>;
   checkoutVariantDistribution: Record<string, number>;
-  // Delivery choice per checkout variant (for grouped bar chart)
-  deliveryByVariant: { labels: string[]; home: number[]; cc: number[] };
   checkoutTimeRanges: { labels: string[]; data: number[]; };
   
   // Likert Scale Questions (Initial Survey)
@@ -122,8 +120,6 @@ const Admin = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // No label normalization; we only compute an order so original labels remain intact
 
   useEffect(() => {
     loadData();
@@ -257,7 +253,6 @@ const Admin = () => {
     const productDistribution: Record<string, number> = {};
     const deliveryDistribution: Record<string, number> = {};
     const checkoutVariantDistribution: Record<string, number> = {};
-    const deliveryByVariantMap: Record<string, { home: number; cc: number }> = {};
     
     // Tempi
     const checkoutTimes: number[] = [];
@@ -302,20 +297,6 @@ const Admin = () => {
       }
       if (item.checkoutData?.variant) {
         checkoutVariantDistribution[item.checkoutData.variant] = (checkoutVariantDistribution[item.checkoutData.variant] || 0) + 1;
-      }
-
-      // Delivery choice per checkout variant
-      const variant: string | undefined = item.checkoutData?.variant as string | undefined;
-      const deliveryValue: string | undefined = item.orderData?.deliveryValue as string | undefined;
-      if (variant && deliveryValue) {
-        if (!deliveryByVariantMap[variant]) {
-          deliveryByVariantMap[variant] = { home: 0, cc: 0 };
-        }
-        if (deliveryValue === 'home') {
-          deliveryByVariantMap[variant].home += 1;
-        } else if (deliveryValue === 'cc') {
-          deliveryByVariantMap[variant].cc += 1;
-        }
       }
 
       // Times
@@ -403,25 +384,6 @@ const Admin = () => {
       ? `${Math.round(totalTimes.reduce((a, b) => a + b, 0) / totalTimes.length / 60000)}min`
       : '-';
 
-    // Prepare deliveryByVariant arrays
-    // Sort labels so that non-preselected and preselected variants are adjacent
-    const getVariantPriority = (label: string): number => {
-      const l = label.toLowerCase();
-      const isPre = l.includes('pre') && (l.includes('selez') || l.includes('impost'));
-      if (l.includes('standard')) return isPre ? 1 : 0;
-      if (l.includes('ecologic')) return isPre ? 3 : 2; // "scelta ecologica"
-      if (l.includes('emission')) return isPre ? 5 : 4; // emissioni / co2
-      if (l.includes('dettagl')) return isPre ? 7 : 6;  // dettagli
-      return 999;
-    };
-    const variantLabels: string[] = Object.keys(deliveryByVariantMap)
-      .sort((a, b) => getVariantPriority(a) - getVariantPriority(b));
-    const deliveryByVariant = {
-      labels: variantLabels,
-      home: variantLabels.map(v => deliveryByVariantMap[v]?.home ?? 0),
-      cc: variantLabels.map(v => deliveryByVariantMap[v]?.cc ?? 0)
-    };
-
     return {
       totalResponses: data.length,
       lastUpdate: new Date().toISOString(),
@@ -436,7 +398,6 @@ const Admin = () => {
       productDistribution,
       deliveryDistribution,
       checkoutVariantDistribution,
-      deliveryByVariant,
       checkoutTimeRanges,
       likertAverages,
       environmentalConsiderationDistribution,
@@ -488,67 +449,6 @@ const Admin = () => {
     const a = document.createElement('a');
     a.href = url;
     a.download = `survey-data-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  };
-
-  const exportExcel = () => {
-    if (surveyData.length === 0) {
-      alert('Nessun dato da esportare');
-      return;
-    }
-
-    const headers = [
-      'Timestamp', 'SessionID', 'Age', 'Gender', 'Education', 'Device', 
-      'Financial', 'Frequency', 'ProductTitle', 'ProductID', 'DeliveryMethod', 
-      'DeliveryValue', 'CheckoutTimeSeconds', 'CheckoutVariant',
-      'EnvironmentalConsideration', 'TotalTimeMinutes', 'ProductClicks'
-    ];
-
-    const rows: (string | number)[][] = surveyData.map((item: SurveyData) => [
-      item.timestamp || '',
-      item.sessionId || '',
-      item.initialSurvey?.age || '',
-      item.initialSurvey?.gender || '',
-      item.initialSurvey?.education || '',
-      item.initialSurvey?.device || '',
-      item.initialSurvey?.financial || '',
-      item.initialSurvey?.frequency || '',
-      item.orderData?.productTitle || '',
-      item.orderData?.productId || '',
-      item.orderData?.deliveryMethod || '',
-      item.orderData?.deliveryValue || '',
-      item.orderData?.checkoutTimeSpent ? Math.round(item.orderData.checkoutTimeSpent / 1000) : '',
-      item.checkoutData?.variant || '',
-      item.finalSurvey?.environmental_consideration || '',
-      item.totalTimeSpent ? Math.round(item.totalTimeSpent / 60000) : '',
-      item.productInteractions ? Object.values(item.productInteractions).reduce((sum: number, data: any) => sum + (data?.clickCount || 0), 0) : ''
-    ]);
-
-    const escapeHTML = (value: string) => (
-      value
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-    );
-
-    let html = '<table><thead><tr>';
-    html += headers.map(h => `<th>${escapeHTML(String(h))}</th>`).join('');
-    html += '</tr></thead><tbody>';
-    rows.forEach(row => {
-      html += '<tr>' + row.map(field => `<td>${escapeHTML(String(field))}</td>`).join('') + '</tr>';
-    });
-    html += '</tbody></table>';
-
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `survey-data-${new Date().toISOString().split('T')[0]}.xls`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -860,75 +760,6 @@ ${JSON.stringify(item, null, 2)}
                 />
               </div>
             </div>
-
-            <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '1rem', color: '#333' }}>
-                Tipi di Checkout vs Scelta Spedizione
-              </div>
-              <div style={{ position: 'relative', height: '350px', width: '100%' }}>
-                <Bar
-                  data={{
-                    labels: stats.deliveryByVariant.labels,
-                    datasets: [
-                      {
-                        label: 'Spedizione a domicilio',
-                        data: stats.deliveryByVariant.home,
-                        backgroundColor: '#1e88e5'
-                      },
-                      {
-                        label: 'Click & Collect',
-                        data: stats.deliveryByVariant.cc,
-                        backgroundColor: '#43a047'
-                      }
-                    ]
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-                    plugins: { legend: { position: 'bottom' } }
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <div style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '1rem', color: '#333' }}>
-                Tabella Conteggi per Variante
-              </div>
-              <div style={{ overflowY: 'visible' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left', background: '#f8f9fa', color: '#333' }}>Variante</th>
-                      <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left', background: '#f8f9fa', color: '#333' }}>Domicilio</th>
-                      <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left', background: '#f8f9fa', color: '#333' }}>Click & Collect</th>
-                      <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left', background: '#f8f9fa', color: '#333' }}>Totale</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.deliveryByVariant.labels.map((label, idx) => {
-                      const homeCount = stats.deliveryByVariant.home[idx] ?? 0;
-                      const ccCount = stats.deliveryByVariant.cc[idx] ?? 0;
-                      const total = homeCount + ccCount;
-                      return (
-                        <tr key={label}>
-                          <td style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid #f1f3f4' }}>{label}</td>
-                          <td style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid #f1f3f4' }}>{homeCount}</td>
-                          <td style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid #f1f3f4' }}>{ccCount}</td>
-                          <td style={{ padding: '0.4rem 0.6rem', borderBottom: '1px solid #f1f3f4' }}>{total}</td>
-                        </tr>
-                      );
-                    })}
-                    {stats.deliveryByVariant.labels.length === 0 && (
-                      <tr>
-                        <td colSpan={4} style={{ padding: '0.6rem', textAlign: 'center', color: '#666' }}>Nessun dato</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -1186,22 +1017,6 @@ ${JSON.stringify(item, null, 2)}
               }}
             >
               📥 Esporta CSV
-            </button>
-            <button 
-              onClick={exportExcel}
-              style={{ 
-                background: '#ffc107', 
-                color: '#212529', 
-                border: 'none', 
-                padding: '0.75rem 1.5rem', 
-                borderRadius: '8px', 
-                cursor: 'pointer', 
-                fontSize: '1rem', 
-                marginBottom: '1rem',
-                marginLeft: '0.5rem'
-              }}
-            >
-              📊 Esporta Excel
             </button>
             <h3 style={{ margin: 0, display: 'inline-block', marginLeft: '1rem' }}>Dati Dettagliati</h3>
           </div>
