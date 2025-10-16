@@ -26,7 +26,7 @@ const Checkout = ({ updateSurveyData, surveyData }: CheckoutProps) => {
   // Funzione per convertire il numero della variante nel tipo
   const getVariantType = (variant: number): string => {
     if (variant === 9) {
-      return 'Click & Collect senza pallino verde e senza niente';
+      return 'Controllo';
     }
     
     const baseVariant = variant > 4 ? variant - 4 : variant;
